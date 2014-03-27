@@ -1,0 +1,10 @@
+{
+    entry = {
+	bundle = DisplayCandySettings;
+	cell = PSLinkCell;
+	detail = DCSettingsListController;
+	icon = DisplayCandy.png;
+	isController = 1;
+	label = DisplayCandy;
+    };
+}

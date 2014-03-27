@@ -1,0 +1,9 @@
+Package: org.thebigboss.displaycandy
+Name: DisplayCandy
+Depends: mobilesubstrate, com.rpetrich.layersnapshotter, preferenceloader
+Version: 1.0.7
+Architecture: iphoneos-arm
+Description: Custom launch/suspend/switch animations.
+Maintainer: Josh Kugelmann
+Author: Josh Kugelmann
+Section: Tweaks

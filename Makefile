@@ -1,5 +1,6 @@
 export ARCHS = armv7
 export TARGET = iphone:clang:latest:5.0
+export ADDITIONAL_CFLAGS = -I$(THEOS_PROJECT_DIR)/include
 #export DEBUG = 1
 
 THEOS_PACKAGE_DIR_NAME = packages

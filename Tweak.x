@@ -1,5 +1,6 @@
-#import <UIKit/UIKit.h>
 #import <objc/runtime.h>
+#import <UIKit/UIKit.h>
+#import <IOSurface/IOSurface.h>
 #import <GraphicsServices/GraphicsServices.h>
 #import "SpringBoard-Minimal.h"
 #import "layersnapshotter.h"
@@ -23,7 +24,7 @@ static char kZoomUpTransitionKey;
 static char kZoomDownTransitionKey;
 
 @interface UIImage (IOSurface)
-- (id)_initWithIOSurface:(IOSurfaceRef)iosurface scale:(float)scale orientation:(int)orientation;
+- (id)_initWithIOSurface:(IOSurfaceRef)ioSurface scale:(float)scale orientation:(int)orientation;
 @end
 
 @interface UIScreen (iOS5)
@@ -136,7 +137,6 @@ void reloadSettings()
     [_transitionController endTransition];
     [_transitionController release];
     _transitionController = nil;
-
 }
 
 - (void)animateApplicationActivation:(id)application animateDefaultImage:(BOOL)image scatterIcons:(BOOL)icons
@@ -181,7 +181,7 @@ void reloadSettings()
 
         // Create the transition view.
         _transitionController = [[DCTransitionController alloc] init];
-        [_transitionController setDelegate:self];
+        [_transitionController setDelegate:(id<DCTransitionDelegate>)self];
         [_transitionController setApplication:application];
         [_transitionController setMode:DCTransitionModeLaunch];
         [_transitionController setFromView:screen];
@@ -254,7 +254,7 @@ void reloadSettings()
 
         // Create the transition view.
         _transitionController = [[DCTransitionController alloc] init];
-        [_transitionController setDelegate:self];
+        [_transitionController setDelegate:(id<DCTransitionDelegate>)self];
         [_transitionController setApplication:application];
         [_transitionController setMode:DCTransitionModeSuspend];
         [_transitionController setFromView:screen];
@@ -339,7 +339,7 @@ void reloadSettings()
 		// Create the transition view.
 		DCTransitionController *transitionController = [[DCTransitionController alloc] init];
 		[transitionController setApplication:[self activatingApp]];
-		[transitionController setDelegate:self];
+		[transitionController setDelegate:(id<DCTransitionDelegate>)self];
 		[transitionController setMode:DCTransitionModeLaunch];
 		[transitionController setFromView:screen];
 		[transitionController setToView:zoomView];
@@ -407,7 +407,7 @@ void reloadSettings()
 		// Create the transition view.
 		DCTransitionController *transitionController = [[DCTransitionController alloc] init];
 		[transitionController setApplication:[self deactivatingApp]];
-		[transitionController setDelegate:self];
+		[transitionController setDelegate:(id<DCTransitionDelegate>)self];
 		[transitionController setMode:DCTransitionModeSuspend];
 
 		// Hack to stop a quick flash of the homescreen from appearing.
@@ -482,7 +482,7 @@ void reloadSettings()
         // Create a wrapper for DCTransitionController's view (so that standard SpringBoard methods can be utilised).
 		CGSize windowSize = [[self containerView] frame].size;
         DCAppToAppWrapperView *wrapperView = [[%c(DCAppToAppWrapperView) alloc] initWithFrame:(CGRect){CGPointZero, windowSize}];
-		[wrapperView setDelegate:self];
+		[wrapperView setDelegate:(id<DCTransitionDelegate>)self];
 		[wrapperView setTransition:transition];
 
 		[self setTransitionView:wrapperView];

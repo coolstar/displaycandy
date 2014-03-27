@@ -1,6 +1,5 @@
 #import <Foundation/Foundation.h>
-
-@class PSSpecifier;
+#import "Preferences-Minimal.h"
 
 @interface DCSettingsListController : PSListController {
     PSSpecifier *_launchAnimation;

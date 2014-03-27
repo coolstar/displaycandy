@@ -1,9 +1,13 @@
-#import <QuartzCore/QuartzCore2.h>
+#import <QuartzCore/QuartzCore.h>
 #import "SpringBoard-Minimal.h"
 #import "DCSettings.h"
-#include "DCFunctions.h"
 #import "DCTypes.h"
 #import "DCBuiltInTransitionView.h"
+#include "DCFunctions.h"
+
+@interface CAFilter : NSObject
++ (id)filterWithName:(NSString *)name;
+@end
 
 @interface DCBuiltInTransitionView ()
 - (NSString *)stringForDirection:(DCTransitionDirection)direction;

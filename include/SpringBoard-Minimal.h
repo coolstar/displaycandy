@@ -1,5 +1,4 @@
 #import <Foundation/Foundation.h>
-#import "DCTransitionDelegate.h"
 
 @interface UIApplication (SpringBoard)
 - (UIInterfaceOrientation)activeInterfaceOrientation;
@@ -22,7 +21,7 @@
 - (void)setHidden:(BOOL)hidden;
 @end
 
-@interface SBUIController : NSObject <DCTransitionDelegate>
+@interface SBUIController : NSObject
 + (id)sharedInstance;
 + (id)zoomViewForApplication:(id)arg1 includeStatusBar:(BOOL)arg2 includeBanner:(BOOL)arg3 includeRoundedCorners:(BOOL)arg4 canUseIOSurface:(BOOL)arg5 decodeImage:(BOOL)arg6;
 - (void)cleanUpAfterZoomAnimation;
@@ -163,7 +162,7 @@
 - (void)setToView:(id)view;
 @end
 
-@interface SBUIAnimationController : NSObject <DCTransitionDelegate>
+@interface SBUIAnimationController : NSObject
 @property(readonly, nonatomic) UIView *containerView;
 @property(retain, nonatomic) SBApplication *deactivatingApp; 
 @property(retain, nonatomic) SBApplication *activatingApp;

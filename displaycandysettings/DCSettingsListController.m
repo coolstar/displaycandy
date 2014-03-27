@@ -1,4 +1,3 @@
-#import <Preferences5/Preferences.h>
 #import "DCSettingsListController.h"
 
 @implementation DCSettingsListController

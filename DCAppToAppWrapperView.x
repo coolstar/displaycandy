@@ -21,22 +21,22 @@ static char kTransitionControllerKey;
 
 - (id)initWithFrame:(CGRect)frame
 {
-    self = %orig;
+	self = %orig;
 
-    if (self) {
-        // Create the transition view.
-        DCTransitionController *transitionController = [[DCTransitionController alloc] init];
-        [transitionController setDelegate:self];
-        [transitionController setApplication:[self toApp]];
-        [transitionController setMode:DCTransitionModeSwitch];
+	if (self) {
+		// Create the transition view.
+		DCTransitionController *transitionController = [[DCTransitionController alloc] init];
+		[transitionController setDelegate:self];
+		[transitionController setApplication:[self toApp]];
+		[transitionController setMode:DCTransitionModeSwitch];
 
-        [self addSubview:[transitionController view]];
+		[self addSubview:[transitionController view]];
 
-        objc_setAssociatedObject(self, &kTransitionControllerKey, transitionController, OBJC_ASSOCIATION_RETAIN_NONATOMIC);        
-        [transitionController release];
-    }
+		objc_setAssociatedObject(self, &kTransitionControllerKey, transitionController, OBJC_ASSOCIATION_RETAIN_NONATOMIC);		   
+		[transitionController release];
+	}
 
-    return self;
+	return self;
 }
 
 %new
@@ -53,37 +53,37 @@ static char kTransitionControllerKey;
 
 - (void)setFromView:(UIView *)fromView
 {
-    %orig;
+	%orig;
 
-    // Rotate the view depending on the orientation.
-    CGAffineTransform rotationTransform = DCRotationTransformForCurrentOrientation();
-    [fromView setTransform:rotationTransform];
+	// Rotate the view depending on the orientation.
+	CGAffineTransform rotationTransform = DCRotationTransformForCurrentOrientation();
+	[fromView setTransform:rotationTransform];
 
-    [fromView setBackgroundColor:[UIColor blackColor]];    
+	[fromView setBackgroundColor:[UIColor blackColor]];    
 
-    DCTransitionController *transitionController = objc_getAssociatedObject(self, &kTransitionControllerKey);    
-    [transitionController setFromView:fromView];
+	DCTransitionController *transitionController = objc_getAssociatedObject(self, &kTransitionControllerKey);	 
+	[transitionController setFromView:fromView];
 }
 
 - (void)setToView:(UIView *)toView
 {
-    %orig;
-    
-    // Rotate the view depending on the orientation.
-    CGAffineTransform rotationTransform = DCRotationTransformForCurrentOrientation();
-    [toView setTransform:rotationTransform];
+	%orig;
+	
+	// Rotate the view depending on the orientation.
+	CGAffineTransform rotationTransform = DCRotationTransformForCurrentOrientation();
+	[toView setTransform:rotationTransform];
 
-    [toView setBackgroundColor:[UIColor blackColor]];    
+	[toView setBackgroundColor:[UIColor blackColor]];	 
 
-    DCTransitionController *transitionController = objc_getAssociatedObject(self, &kTransitionControllerKey);    
-    [transitionController setToView:toView];
+	DCTransitionController *transitionController = objc_getAssociatedObject(self, &kTransitionControllerKey);	 
+	[transitionController setToView:toView];
 }
 
 - (void)beginTransition
 {
-    // Start the animation
-    DCTransitionController *transitionController = objc_getAssociatedObject(self, &kTransitionControllerKey); 
-    [transitionController beginTransition:[self transition]];
+	// Start the animation
+	DCTransitionController *transitionController = objc_getAssociatedObject(self, &kTransitionControllerKey); 
+	[transitionController beginTransition:[self transition]];
 
 	if ([self respondsToSelector:@selector(_animationBegan)]) { // iOS >= 6.0
 		[self _animationBegan];
@@ -98,10 +98,10 @@ static char kTransitionControllerKey;
 
 - (void)endTransition
 {
-    DCTransitionController *transitionController = objc_getAssociatedObject(self, &kTransitionControllerKey);
+	DCTransitionController *transitionController = objc_getAssociatedObject(self, &kTransitionControllerKey);
 
-    [[transitionController view] removeFromSuperview];
-    [transitionController endTransition];
+	[[transitionController view] removeFromSuperview];
+	[transitionController endTransition];
 }
 
 %new

@@ -7,7 +7,7 @@
 #import "DCTransitionView.h"
 
 @interface DCTransitionController : NSObject {
-    DCTransitionView *_transitionView;
+	DCTransitionView *_transitionView;
 }
 
 @property (nonatomic, assign) id<DCTransitionDelegate> delegate;

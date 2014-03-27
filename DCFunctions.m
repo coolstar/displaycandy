@@ -6,14 +6,14 @@
 
 CGAffineTransform DCRotationTransformForCurrentOrientation()
 {
-    switch ([[UIApplication sharedApplication] activeInterfaceOrientation]) {
-        case UIInterfaceOrientationPortraitUpsideDown:
-            return CGAffineTransformMakeRotation(M_PI);
-        case UIInterfaceOrientationLandscapeLeft:
-            return CGAffineTransformMakeRotation(M_PI_2);
-        case UIInterfaceOrientationLandscapeRight:
-            return CGAffineTransformMakeRotation(-M_PI_2);
-        default:
-            return CGAffineTransformIdentity;
-    }
+	switch ([[UIApplication sharedApplication] activeInterfaceOrientation]) {
+		case UIInterfaceOrientationPortraitUpsideDown:
+			return CGAffineTransformMakeRotation(M_PI);
+		case UIInterfaceOrientationLandscapeLeft:
+			return CGAffineTransformMakeRotation(M_PI_2);
+		case UIInterfaceOrientationLandscapeRight:
+			return CGAffineTransformMakeRotation(-M_PI_2);
+		default:
+			return CGAffineTransformIdentity;
+	}
 }

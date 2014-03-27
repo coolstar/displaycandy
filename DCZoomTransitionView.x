@@ -14,7 +14,7 @@
 
 	id applicationIcon = (%c(SBUIAnimationController) && [url hasPrefix:@"webclip:"])
 						 ? [iconModel leafIconForWebClipIdentifier:[url substringFromIndex:8]]
-				 		 : [iconModel applicationIconForDisplayIdentifier:[self applicationIdentifier]];
+						 : [iconModel applicationIconForDisplayIdentifier:[self applicationIdentifier]];
 
 	UIImageView *iconView = [[[%c(SBIconViewMap) homescreenMap] iconViewForIcon:applicationIcon] iconImageView];
 
@@ -27,14 +27,14 @@
 
 	CGSize sizeFromIconToScreenCenter = (!isSwitcherShowing && CGRectIntersectsRect(iconFrame, [self frame]))
 										? CGSizeMake((viewSize.width / 2) - iconFrame.origin.x - (iconFrame.size.width / 2),
-										             (viewSize.height / 2) - iconFrame.origin.y - (iconFrame.size.height / 2))
+													 (viewSize.height / 2) - iconFrame.origin.y - (iconFrame.size.height / 2))
 										: CGSizeZero;
 
 	CGFloat appViewHeight = viewSize.height / scaleFactor;
 	CGFloat heightDifference = appViewHeight - iconFrame.size.height;
 	CGFloat appViewYTranslation = (heightDifference / 2) * (sizeFromIconToScreenCenter.height / (viewSize.height / 2));
 
-    BOOL isLaunching = ([self mode] == DCTransitionModeLaunch);
+	BOOL isLaunching = ([self mode] == DCTransitionModeLaunch);
 
 	// Homescreen animation.
 	{

@@ -4,8 +4,8 @@
 #import "DCTransitionView.h"
 
 @interface DCSwingTransitionView : DCTransitionView {
-    UIView *_fromViewContainer;
-    UIView *_toViewContainer;
+	UIView *_fromViewContainer;
+	UIView *_toViewContainer;
 }
 
 @end

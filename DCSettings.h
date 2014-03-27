@@ -3,7 +3,7 @@
 #import "DCTypes.h"
 
 @interface DCSettings : NSObject {
-    NSDictionary *_settings;
+	NSDictionary *_settings;
 }
 
 + (DCSettings *)sharedSettings;

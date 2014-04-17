@@ -41,11 +41,13 @@
 - (void)stopRestoringIconList;
 - (void)tearDownIconListAndBar;
 - (void)restoreIconListAnimated:(BOOL)animated;
+- (void)restoreContentAndUnscatterIconsAnimated:(BOOL)animated;
 - (void)zoomWallpaper:(BOOL)wallpaper startTime:(double)time duration:(double)duration;
 - (void)_ignoreEvents;
 - (void)_resumeEventsIfNecessary;
 - (void)_hideKeyboard;
 - (void)clearFakeSpringBoardStatusBarAndCorners;
+- (void)clearFakeSpringBoardStatusBar;
 @end
 
 @interface SBIconView : UIView
@@ -168,6 +170,7 @@
 @property(retain, nonatomic) SBApplication *activatingApp;
 - (void)_noteAnimationDidCommit:(BOOL)arg1 withDuration:(double)arg2 afterDelay:(double)arg3;
 - (void)_noteAnimationDidFinish:(BOOL)arg1;
+- (void)_noteAnimationDidFinish;
 @end
 
 @interface SBAppToAppTransitionController : SBUIAnimationController 
@@ -178,4 +181,7 @@
 @end
 
 @interface SBUIAnimationZoomDownApp : SBUIAnimationController
+@end
+
+@interface SBFWallpaperView : UIView
 @end

@@ -1,3 +1,4 @@
+#import <dlfcn.h>
 #import <objc/runtime.h>
 #import <UIKit/UIKit.h>
 #import <IOSurface/IOSurface.h>
@@ -18,6 +19,7 @@ UIImage* _UICreateScreenUIImage();
 void CARenderServerRenderDisplay(kern_return_t, CFStringRef, IOSurfaceRef, int, int);
 
 static DCTransitionController *_transitionController;
+static UIWindow *DCWallpaperWindow = nil;
 static char kZoomUpTransitionControllerKey;
 static char kZoomDownTransitionControllerKey;
 static char kZoomUpTransitionKey;
@@ -73,13 +75,19 @@ void reloadSettings()
 	UIView *homescreen = [[UIView alloc] initWithFrame:(CGRect){CGPointZero, [[self contentView] bounds].size}];
 	[homescreen setBackgroundColor:[UIColor blackColor]];
 
+	[homescreen setCenter:[homescreen center]];
+
+	if (%c(SBFWallpaperView)){
+		UIImage *wallpaperSnapshotImage = [DCWallpaperWindow renderSnapshot];
+		UIImageView *wallpaperViewSnapshot = [[UIImageView alloc] initWithImage:wallpaperSnapshotImage];
+		[homescreen addSubview:wallpaperViewSnapshot];
+		[wallpaperViewSnapshot release];
+	}
+
 	// Grab a snapshot of contentView.
 	UIImage *contentViewSnapshotImage = [[self contentView] renderSnapshot];
 	UIImageView *contentViewSnapshot = [[UIImageView alloc] initWithImage:contentViewSnapshotImage];
-
-	[homescreen setCenter:[homescreen center]];
 	[homescreen addSubview:contentViewSnapshot];
-
 	[contentViewSnapshot release];
 
 	// Add the status bar
@@ -118,7 +126,11 @@ void reloadSettings()
 		[[%c(SBUIController) sharedInstance] _resumeEventsIfNecessary];
 
 		// Clear the transition view.
-		[[self rootView] setAlpha:1.0];
+		if ([self respondsToSelector:@selector(rootView)])
+			[[self rootView] setAlpha:1.0];
+		else
+			[[self contentView] setAlpha:1.0];
+
 		[self cleanUpAfterZoomAnimation];
 	}
 }
@@ -497,11 +509,222 @@ void reloadSettings()
 %end
 %end
 
+%group iOS7
+%hook SBFWallpaperView
+
+%new
++ (id)DBGLastView {
+	return DCWallpaperWindow;
+}
+
+- (void)didMoveToWindow {
+	%orig;
+	UIView *view = self;
+	while (view.superview){
+		view = view.superview;
+	}
+	if ([view isKindOfClass:[%c(SBAppWindow) class]])
+		return;
+	DCWallpaperWindow = (UIWindow *)view;
+}
+%end
+
+%hook SBUIAnimationZoomUpAppFromHome
+
+- (void)prepareZoom
+{
+	Ivar doFadeInsteadOfZoomIvar = class_getInstanceVariable([self class], "_doFadeInsteadOfZoom");
+	BOOL *doFadeInsteadOfZoom = (BOOL *)((char *)self + ivar_getOffset(doFadeInsteadOfZoomIvar));
+
+	DCTransition transition = [[DCSettings sharedSettings] transitionForMode:DCTransitionModeLaunch];
+
+	if ([[DCSettings sharedSettings] isEnabled] && transition != 0 && !*doFadeInsteadOfZoom && ![[self activatingApp] activationFlag:0x18]) {
+		objc_setAssociatedObject(self, &kZoomUpTransitionKey, @(transition), OBJC_ASSOCIATION_RETAIN_NONATOMIC);	
+		[[%c(SBUIController) sharedInstance] clearFakeSpringBoardStatusBar];
+
+		// Snapshot the screen.
+		UIImageView *screen = [[%c(SBUIController) sharedInstance] screenSnapshotView];
+
+		// Get the application's launch image.
+		UIView *zoomView = [%c(SBUIController) zoomViewForApplication:[self activatingApp]
+													 includeStatusBar:![[self activatingApp] statusBarHidden]
+														includeBanner:NO
+												includeRoundedCorners:YES
+													  canUseIOSurface:YES
+														  decodeImage:YES];
+
+		[zoomView setBackgroundColor:[UIColor blackColor]];
+
+		// Rotate the zoom view depending on the orientation.
+		CGAffineTransform rotationTransform = DCRotationTransformForCurrentOrientation();
+		[zoomView setTransform:rotationTransform];
+
+		// Create the transition view.
+		DCTransitionController *transitionController = [[DCTransitionController alloc] init];
+		[transitionController setApplication:[self activatingApp]];
+		[transitionController setDelegate:(id<DCTransitionDelegate>)self];
+		[transitionController setMode:DCTransitionModeLaunch];
+		[transitionController setFromView:screen];
+		[transitionController setToView:zoomView];
+
+		[[self containerView] addSubview:[transitionController view]];
+
+		objc_setAssociatedObject(self, &kZoomUpTransitionControllerKey, transitionController, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+		[transitionController release];
+	} else {
+		%orig;
+	}
+}
+
+- (void)_startAnimation
+{
+	DCTransition transition = [objc_getAssociatedObject(self, &kZoomUpTransitionKey) intValue];
+	DCTransitionController *transitionController = objc_getAssociatedObject(self, &kZoomUpTransitionControllerKey);	
+
+	if ([[DCSettings sharedSettings] isEnabled] && transition != 0) {
+		// Close any showcase views (Switcher, Siri), hide the keyboard and statusbar.
+		[[%c(SBUIController) sharedInstance] _hideKeyboard];
+
+		// Start the animation.
+		[transitionController beginTransition:transition];
+		[self _noteAnimationDidCommit:YES withDuration:[[DCSettings sharedSettings] durationForMode:DCTransitionModeLaunch] afterDelay:0.0f];
+	} else {
+		%orig;
+	}
+}
+
+- (void)cleanupZoom
+{
+	%orig;
+	
+	DCTransitionController *transitionController = objc_getAssociatedObject(self, &kZoomUpTransitionControllerKey);	
+
+	[[transitionController view] removeFromSuperview];
+	[transitionController endTransition];
+}
+
+%new
+- (void)displayCandyAnimationFinishedWithMode:(DCTransitionMode)mode app:(SBApplication *)app
+{
+	[self _noteAnimationDidFinish];	
+}
+
+%end
+
+%hook SBUIAnimationZoomDownApp
+
+- (void)_prepareAnimation
+{
+	UIImageView *screen = [[%c(SBUIController) sharedInstance] screenSnapshotView];
+
+	[[%c(SBUIController) sharedInstance] restoreContentAndUnscatterIconsAnimated:NO];
+	UIImageView *homescreen = [[%c(SBUIController) sharedInstance] homescreenSnapshotView];
+
+	DCTransition transition = [[DCSettings sharedSettings] transitionForMode:DCTransitionModeSuspend];
+	if ([[DCSettings sharedSettings] isEnabled] && transition != 0) {
+		objc_setAssociatedObject(self, &kZoomDownTransitionKey, @(transition), OBJC_ASSOCIATION_RETAIN_NONATOMIC);		
+		[[%c(SBUIController) sharedInstance] clearFakeSpringBoardStatusBar];
+		
+		// Hack to stop a quick flash of the homescreen from appearing.
+		[screen setFrame:(CGRect){CGPointZero, [screen frame].size}];
+		[[[%c(SBUIController) sharedInstance] contentView] addSubview:screen];
+
+		// Create the transition view.
+		DCTransitionController *transitionController = [[DCTransitionController alloc] init];
+		[transitionController setApplication:[self deactivatingApp]];
+		[transitionController setDelegate:(id<DCTransitionDelegate>)self];
+		[transitionController setMode:DCTransitionModeSuspend];
+
+		// Snapshot the home screen.
+
+		[screen removeFromSuperview];
+
+		[transitionController setFromView:screen];		
+		[transitionController setToView:homescreen];
+
+		[[self containerView] addSubview:[transitionController view]];
+
+		objc_setAssociatedObject(self, &kZoomDownTransitionControllerKey, transitionController, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+		[transitionController release];
+	} else {
+		%orig;
+	}
+}
+
+- (void)_startAnimation
+{
+	DCTransition transition = [objc_getAssociatedObject(self, &kZoomDownTransitionKey) intValue];
+	DCTransitionController *transitionController = objc_getAssociatedObject(self, &kZoomDownTransitionControllerKey);	
+
+	if ([[DCSettings sharedSettings] isEnabled] && transition != 0) {
+		// Close any showcase views (Switcher, Siri), hide the keyboard and statusbar.
+		[[%c(SBUIController) sharedInstance] _hideKeyboard];
+		[[%c(SBUIController) sharedInstance] stopRestoringIconList];
+
+		// Start the animation.
+		[transitionController beginTransition:transition];
+		[self _noteAnimationDidCommit:YES withDuration:[[DCSettings sharedSettings] durationForMode:DCTransitionModeLaunch] afterDelay:0.0f];
+	} else {
+		%orig;
+	}
+}
+
+- (void)_cleanupAnimation
+{
+	%orig;
+
+	DCTransitionController *transitionController = objc_getAssociatedObject(self, &kZoomDownTransitionControllerKey);	
+
+	[[transitionController view] removeFromSuperview];
+	[transitionController endTransition];
+}
+
+%new
+- (void)displayCandyAnimationFinishedWithMode:(DCTransitionMode)mode app:(SBApplication *)app
+{
+	[self _noteAnimationDidFinish];	
+}
+
+%end
+
+%hook SBAppToAppTransitionController
+
+- (id)initWithActivatingApp:(id)arg1 deactivatingApp:(id)arg2
+{
+	self = %orig;
+	
+	DCTransition transition = [[DCSettings sharedSettings] transitionForMode:DCTransitionModeSwitch];
+
+	if (self && [[DCSettings sharedSettings] isEnabled] && transition != 0) {
+		// Remove existing transition view;
+		[[self transitionView] removeFromSuperview];
+		[self setTransitionView:nil];
+
+		// Create a wrapper for DCTransitionController's view (so that standard SpringBoard methods can be utilised).
+		CGSize windowSize = [[self containerView] frame].size;
+		DCAppToAppWrapperView *wrapperView = [[%c(DCAppToAppWrapperView) alloc] initWithFrame:(CGRect){CGPointZero, windowSize}];
+		[wrapperView setDelegate:(id<DCTransitionDelegate>)self];
+		[wrapperView setTransition:transition];
+
+		[self setTransitionView:wrapperView];
+		[[self containerView] addSubview:wrapperView];
+
+		[wrapperView release];
+	}
+
+	return self;
+}
+
+%end
+%end
+
 %ctor
 {
 	%init(NewMethods);
 
-	if (%c(SBUIAnimationController)) {
+	if (%c(SBUIAnimationZoomUpAppFromHome)) {
+		%init(iOS7);
+	} else if (%c(SBUIAnimationController)) {
 		%init(iOS6);
 	} else {
 		%init(iOS5);

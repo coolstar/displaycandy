@@ -19,11 +19,11 @@ UIImage* _UICreateScreenUIImage();
 void CARenderServerRenderDisplay(kern_return_t, CFStringRef, IOSurfaceRef, int, int);
 
 static DCTransitionController *_transitionController;
-static UIWindow *DCWallpaperWindow = nil;
 static char kZoomUpTransitionControllerKey;
 static char kZoomDownTransitionControllerKey;
 static char kZoomUpTransitionKey;
 static char kZoomDownTransitionKey;
+static SBWallpaperPreviewSnapshotCache *DCSharedWallpaperSnapshotCache;
 
 @interface UIImage (IOSurface)
 - (id)_initWithIOSurface:(IOSurfaceRef)ioSurface scale:(float)scale orientation:(int)orientation;
@@ -77,15 +77,14 @@ void reloadSettings()
 
 	[homescreen setCenter:[homescreen center]];
 
-	if (%c(SBFWallpaperView)){
-		UIImage *wallpaperSnapshotImage = [DCWallpaperWindow renderSnapshot];
-		UIImageView *wallpaperViewSnapshot = [[UIImageView alloc] initWithImage:wallpaperSnapshotImage];
-		[homescreen addSubview:wallpaperViewSnapshot];
-		[wallpaperViewSnapshot release];
+		// Grab a snapshot of contentView.
+	UIImage *contentViewSnapshotImage = nil;
+	if (%c(SBWallpaperPreviewSnapshotCache)){
+		contentViewSnapshotImage = [[%c(SBWallpaperPreviewSnapshotCache) sharedCache] homeScreenSnapshot];
+		contentViewSnapshotImage = [UIImage imageWithCGImage:[contentViewSnapshotImage CGImage] scale:[[UIScreen mainScreen] scale] orientation:UIImageOrientationUp];
+	} else {
+		contentViewSnapshotImage = [[self contentView] renderSnapshot];
 	}
-
-	// Grab a snapshot of contentView.
-	UIImage *contentViewSnapshotImage = [[self contentView] renderSnapshot];
 	UIImageView *contentViewSnapshot = [[UIImageView alloc] initWithImage:contentViewSnapshotImage];
 	[homescreen addSubview:contentViewSnapshot];
 	[contentViewSnapshot release];
@@ -510,22 +509,16 @@ void reloadSettings()
 %end
 
 %group iOS7
-%hook SBFWallpaperView
 
+%hook SBWallpaperPreviewSnapshotCache
 %new
-+ (id)DBGLastView {
-	return DCWallpaperWindow;
++(SBWallpaperPreviewSnapshotCache *)sharedCache {
+	return DCSharedWallpaperSnapshotCache;
 }
-
-- (void)didMoveToWindow {
-	%orig;
-	UIView *view = self;
-	while (view.superview){
-		view = view.superview;
-	}
-	if ([view isKindOfClass:[%c(SBAppWindow) class]])
-		return;
-	DCWallpaperWindow = (UIWindow *)view;
+-(id)initWithImageCache:(id)imageCache {
+	self = %orig;
+	DCSharedWallpaperSnapshotCache = self;
+	return self;
 }
 %end
 
@@ -615,19 +608,13 @@ void reloadSettings()
 
 - (void)_prepareAnimation
 {
-	UIImageView *screen = [[%c(SBUIController) sharedInstance] screenSnapshotView];
-
-	[[%c(SBUIController) sharedInstance] restoreContentAndUnscatterIconsAnimated:NO];
-	UIImageView *homescreen = [[%c(SBUIController) sharedInstance] homescreenSnapshotView];
-
 	DCTransition transition = [[DCSettings sharedSettings] transitionForMode:DCTransitionModeSuspend];
 	if ([[DCSettings sharedSettings] isEnabled] && transition != 0) {
 		objc_setAssociatedObject(self, &kZoomDownTransitionKey, @(transition), OBJC_ASSOCIATION_RETAIN_NONATOMIC);		
 		[[%c(SBUIController) sharedInstance] clearFakeSpringBoardStatusBar];
 		
-		// Hack to stop a quick flash of the homescreen from appearing.
-		[screen setFrame:(CGRect){CGPointZero, [screen frame].size}];
-		[[[%c(SBUIController) sharedInstance] contentView] addSubview:screen];
+		// Snapshot the screen.
+		UIImageView *screen = [[%c(SBUIController) sharedInstance] screenSnapshotView];
 
 		// Create the transition view.
 		DCTransitionController *transitionController = [[DCTransitionController alloc] init];
@@ -635,7 +622,12 @@ void reloadSettings()
 		[transitionController setDelegate:(id<DCTransitionDelegate>)self];
 		[transitionController setMode:DCTransitionModeSuspend];
 
+		// Hack to stop a quick flash of the homescreen from appearing.
+		[screen setFrame:(CGRect){CGPointZero, [screen frame].size}];
+		[[[%c(SBUIController) sharedInstance] contentView] addSubview:screen];
+
 		// Snapshot the home screen.
+		UIImageView *homescreen = [[%c(SBUIController) sharedInstance] homescreenSnapshotView];
 
 		[screen removeFromSuperview];
 

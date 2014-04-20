@@ -183,5 +183,7 @@
 @interface SBUIAnimationZoomDownApp : SBUIAnimationController
 @end
 
-@interface SBFWallpaperView : UIView
+@interface SBWallpaperPreviewSnapshotCache : NSObject
++ (SBWallpaperPreviewSnapshotCache *)sharedCache;
+- (UIImage *)homeScreenSnapshot;
 @end
